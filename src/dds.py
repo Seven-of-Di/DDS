@@ -1,8 +1,10 @@
 """See: https://github.com/dds-bridge/dds/blob/develop/doc/dll-description.md"""
 
-from ctypes import Structure, c_int, pointer
+from ctypes import Structure, c_int, c_char, pointer
 import platform
 import os
+import codecs
+from this import d
 
 if platform.system() == "Windows":
     from ctypes import windll as libloader
@@ -47,6 +49,13 @@ class DDTableDeal(Structure):
 class DDTableResults(Structure):
     _fields_ = [
         ("resTable", (c_int * 4) * 5)
+    ]
+
+
+class ParResults(Structure):
+    _fields_ = [
+        ("parScore", (c_char * 16) * 2),
+        ("parContractsString", (c_char * 128) * 2),
     ]
 
 
@@ -130,7 +139,7 @@ class DDS:
             scores.append((card, score))
         return scores
 
-    def calc_dd_table(self, hands):
+    def dd_table(self, hands):
         cards = encode_deal(hands)
         table_deal = DDTableDeal(cards)
         table = DDTableResults()
@@ -139,7 +148,31 @@ class DDS:
         if code != 1:
             raise DDSError(code)
 
+        return table
+
+    def format_dd_table(self, table):
         results = dict()
         for strain, row in zip(STRAINS, table.resTable):
             results[strain] = dict(zip(DIRECTIONS, row))
+
         return results
+
+    def par(self, table, vulnerability):
+        par_results = ParResults()
+
+        code = self.libdds.Par(pointer(table), pointer(
+            par_results), c_int(vulnerability))
+        if code != 1:
+            raise DDSError(code)
+
+        result = dict()
+
+        nsResult = codecs.decode(
+            par_results.parScore[0]).lstrip("NS ").rstrip("\x00")
+        ewResult = codecs.decode(
+            par_results.parScore[1]).lstrip("EW ").rstrip("\x00")
+
+        result["NS"] = int(nsResult)
+        result["EW"] = int(ewResult)
+
+        return result

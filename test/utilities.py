@@ -102,12 +102,28 @@ def check_dd_table_results(test, results, expected):
     for result in results:
         for denomination in ['C', 'D', 'H', 'S', 'N']:
             for declarer in ['N', 'S', 'E', 'W']:
-                assertElementsEqual(test,
-                                    expected, result,
-                                    denomination, declarer)
+                assertTableElementEqual(test,
+                                        expected, result,
+                                        denomination, declarer)
 
 
-def assertElementsEqual(test, expected, result, denomination, declarer):
+def check_optimum_score_results(test, results, expected):
+    for result in results:
+        for denomination in ['C', 'D', 'H', 'S', 'N']:
+            for declarer in ['N', 'S', 'E', 'W']:
+                assertTableElementEqual(test,
+                                        expected['table'],
+                                        result['table'],
+                                        denomination, declarer)
+
+        for pair in ['NS', 'EW']:
+            assertParElementEqual(test,
+                                  expected['par'],
+                                  result['par'],
+                                  pair)
+
+
+def assertTableElementEqual(test, expected, result, denomination, declarer):
     test.assertEqual(expected[denomination][declarer],
                      result[denomination][declarer],
                      declarer +
@@ -115,3 +131,12 @@ def assertElementsEqual(test, expected, result, denomination, declarer):
                      str(expected[denomination][declarer]) +
                      ' in ' +
                      denomination)
+
+
+def assertParElementEqual(test, expected, result, pair):
+    test.assertEqual(expected[pair],
+                     result[pair],
+                     pair +
+                     ' should make ' +
+                     str(expected[pair]) +
+                     ' in C')

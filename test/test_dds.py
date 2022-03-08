@@ -18,9 +18,16 @@ from test.utilities import run_in_threads
 from test.utilities import check_dd_table_results
 
 from src.dds import DDS
+import logging
+import sys
 
 # So we can use multi-line strings as comments:
 # pylint: disable=pointless-string-statement
+
+logger = logging.getLogger()
+logger.level = logging.DEBUG
+stream_handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(stream_handler)
 
 
 class TestDDS(unittest.TestCase):
@@ -59,12 +66,21 @@ class TestDDS(unittest.TestCase):
         with open(os.path.join('data', 'sample_deal.json')) as file:
             deal = json.load(file)
 
-        dds_table = self.dds.calc_dd_table(deal["hands"])
+        dds_table = self.dds.dd_table(deal["hands"])
+        formatted_dds_table = self.dds.format_dd_table(dds_table)
 
-        self.assertEqual(8, dds_table['C']['S'],
+        self.assertEqual(8, formatted_dds_table['C']['S'],
                          'South can take 8 tricks with clubs as trump')
-        self.assertEqual(6, dds_table['N']['E'],
+        self.assertEqual(6, formatted_dds_table['N']['E'],
                          'East can take 6 tricks at notrump')
+
+        dds_par = self.dds.par(dds_table, 1)
+
+        self.assertEqual(110, dds_par['NS'], 'NS has 110')
+        self.assertEqual(-110, dds_par['EW'], 'EW has -110')
+
+        # logging.getLogger().info(
+        #     '\n'.join([''.join(['{:4}'.format(item) for item in row]) for row in dds_par.parScore]))
 
     def test_ns_make_7_of_everything(self):
         """
@@ -94,14 +110,15 @@ class TestDDS(unittest.TestCase):
 
         hands = nesw_to_dds_format(nesw)
 
-        dds_table = self.dds.calc_dd_table(hands)
+        dds_table = self.dds.dd_table(hands)
+        formatted_dds_table = self.dds.format_dd_table(dds_table)
 
         for denomination in ['C', 'D', 'H', 'S', 'N']:
             for declarer in ['N', 'S']:
-                self.assertEqual(13, dds_table[denomination][declarer],
+                self.assertEqual(13, formatted_dds_table[denomination][declarer],
                                  "NS can take 13 tricks in any denomination.")
             for declarer in ['E', 'W']:
-                self.assertEqual(0, dds_table[denomination][declarer],
+                self.assertEqual(0, formatted_dds_table[denomination][declarer],
                                  "EW can take 0 tricks in any denomination.")
 
         # Now test the same deal, but rotated 90 degrees clockwise
@@ -110,14 +127,15 @@ class TestDDS(unittest.TestCase):
 
         hands = nesw_to_dds_format(nesw)
 
-        dds_table = self.dds.calc_dd_table(hands)
+        dds_table = self.dds.dd_table(hands)
+        formatted_dds_table = self.dds.format_dd_table(dds_table)
 
         for denomination in ['C', 'D', 'H', 'S', 'N']:
             for declarer in ['N', 'S']:
-                self.assertEqual(0, dds_table[denomination][declarer],
+                self.assertEqual(0, formatted_dds_table[denomination][declarer],
                                  "NS can take 0 tricks in any denomination.")
             for declarer in ['E', 'W']:
-                self.assertEqual(13, dds_table[denomination][declarer],
+                self.assertEqual(13, formatted_dds_table[denomination][declarer],
                                  "EW can take 13 tricks in any denomination.")
 
     def test_everyone_makes_3n(self):
@@ -150,10 +168,11 @@ class TestDDS(unittest.TestCase):
 
         hands = nesw_to_dds_format(nesw)
 
-        dds_table = self.dds.calc_dd_table(hands)
+        dds_table = self.dds.dd_table(hands)
+        formatted_dds_table = self.dds.format_dd_table(dds_table)
 
         for declarer in ['N', 'E', 'S', 'W']:
-            self.assertEqual(9, dds_table['N'][declarer],
+            self.assertEqual(9, formatted_dds_table['N'][declarer],
                              "Every declarer can take 9 tricks at NT.")
 
     def skip_test_one_trick_deal(self):
@@ -186,11 +205,12 @@ class TestDDS(unittest.TestCase):
 
         hands = nesw_to_dds_format(nesw)
 
-        dds_table = self.dds.calc_dd_table(hands)
+        dds_table = self.dds.dd_table(hands)
+        formatted_dds_table = self.dds.format_dd_table(dds_table)
 
-        self.assertEqual(0, dds_table['S']['N'],
+        self.assertEqual(0, formatted_dds_table['S']['N'],
                          'South can take no tricks at notrump')
-        self.assertEqual(1, dds_table['S']['N'],
+        self.assertEqual(1, formatted_dds_table['S']['N'],
                          'South can take one tricks at diamonds')
 
     def test_parallel_CalcDDTable(self):
@@ -220,9 +240,13 @@ class TestDDS(unittest.TestCase):
 
         deal = nesw_to_dds_format(nesw)
 
+        def calc_dd_table(deal):
+            dds_table = self.dds.dd_table(deal)
+            return self.dds.format_dd_table(dds_table)
+
         def test_fn(self, deal):
             for i in range(2):
-                yield self.dds.calc_dd_table(deal)
+                yield calc_dd_table(deal)
 
         solutions = run_in_threads(2, test_fn, args=(self, deal))
 
