@@ -1,6 +1,6 @@
 DOCKER_REPO ?= gcr.io/online-bridge-hackathon-2020
 VERSION ?= $(shell cat VERSION)
-DOCKER_TAG=${DOCKER_REPO}/dds-api:${VERSION}
+DOCKER_TAG ?= ${DOCKER_REPO}/dds-api:${VERSION}
 
 EXTERNAL_ADDRES ?= dds.hackathon.globalbridge.app
 
@@ -52,6 +52,12 @@ build: libdds-update
 
 push:
 	docker push ${DOCKER_TAG}
+
+buildx_push:
+	docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 \
+		--push -t ${DOCKER_TAG} \
+		--build-arg CACHEBUST=$(shell git --git-dir=libdds/.git describe) \
+		.
 
 deploy: set_gcp_context ensure_ns
 	helm upgrade --install dds-api ./chart \

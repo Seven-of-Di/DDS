@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - run: git fetch --prune --unshallow --tags
-1`        continue-on-error: true
+        continue-on-error: true
 
       - name: Install Build Essential
         run: sudo apt-get install build-essential
@@ -45,11 +45,8 @@ jobs:
 
       - name: Build and push the image
         env:
-          DOCKER_REPO: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
           VERSION: ${{ github.ref_name }}
+          DOCKER_REPO: public.ecr.aws/i8e5j7a1/dds-api
+          DOCKER_TAG: public.ecr.aws/i8e5j7a1/dds-api:${{ github.ref_name }}
         shell: bash
-        run: |
-          set -ex
-
-          make build 
-          make push
+        run: make buildx_push
