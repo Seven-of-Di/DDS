@@ -24,6 +24,9 @@ jobs:
       - run: git fetch --prune --unshallow --tags
         continue-on-error: true
 
+      - name: Update the submodule
+        run: git submodule update --remote --init --recursive
+
       - name: Install Build Essential
         run: sudo apt-get install build-essential
 

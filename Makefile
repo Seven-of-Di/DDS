@@ -54,10 +54,18 @@ push:
 	docker push ${DOCKER_TAG}
 
 buildx_push:
-	docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 \
-		--push -t ${DOCKER_TAG} \
+	docker buildx build \
+		--push \
+		-t ${DOCKER_TAG} \
 		--build-arg CACHEBUST=$(shell git --git-dir=libdds/.git describe) \
 		.
+
+buildx_build:
+		docker buildx build \
+		-t ${DOCKER_TAG} \
+		--build-arg CACHEBUST=$(shell git --git-dir=libdds/.git describe) \
+		.
+
 
 deploy: set_gcp_context ensure_ns
 	helm upgrade --install dds-api ./chart \
