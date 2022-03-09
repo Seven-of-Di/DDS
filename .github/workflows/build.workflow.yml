@@ -1,0 +1,55 @@
+name: Upgrade the DDS API image
+
+on:
+  push:
+    tags:
+       - '*'
+
+env:
+  AWS_ACCOUNT_ID: "004345335763"
+  AWS_REGION: "eu-central-1"
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build-push-and-deploy:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - run: git fetch --prune --unshallow --tags
+1`        continue-on-error: true
+
+      - name: Install Build Essential
+        run: sudo apt-get install build-essential
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@master
+        with:
+          install: true
+
+      - name: Build and push the image
+        env:
+          DOCKER_REPO: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          VERSION: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -ex
+
+          make build 
+          make push
