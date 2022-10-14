@@ -64,16 +64,18 @@ class DDSOptimum(Resource):
 class DDSScore(Resource):
     def post(self):
         """This should hook in to the dds_scores function listed below"""
-        raise NotImplementedError()
+        data = request.get_json()
 
-    def dds_scores(self, dds, state, target, solutions, mode=1):
-        """Gives the dds score for the given contract, may be mid-hand"""
-        n = len(state['plays']) % 4
-        first = state['plays'][-n][0] if n > 0 else state['turn']
-        trick = [c for _, c in state['plays'][-n:]] if n > 0 else []
-        return dds.solve_board(state['trump'], first, trick, state['hands'],
-                               target, solutions, mode)
+        solved_board = dds.solve_board(data['trump'], data['first'], data['current_trick'], data['deal']['hands'])
 
+        result = []
+        for card_and_trick in solved_board:
+            result.append(dict({
+                "card": card_and_trick[0],
+                "tricks": card_and_trick[1],
+            }))
+
+        return result
 
 class DDSTable(Resource):
     def post(self):
@@ -88,6 +90,7 @@ class DDSTable(Resource):
 
 api.add_resource(DDSOptimum, '/api/dds-optimum/')
 api.add_resource(DDSTable, '/api/dds-table/')
+api.add_resource(DDSScore, '/api/dds-score/')
 
 if __name__ == "__main__":
     app.run(debug=True)

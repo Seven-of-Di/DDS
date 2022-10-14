@@ -94,7 +94,6 @@ def encode_deal(hands):
             cards[i][suit] |= 1 << rank
     return cards
 
-
 class DDS:
     def __init__(self, max_threads=0, max_memory=0):
         if platform.system() == "Windows":
@@ -111,8 +110,7 @@ class DDS:
         if max_threads or max_memory:
             self.libdds.SetResources(max_memory, max_threads)
 
-    def solve_board(self, trump, first, current_trick, hands,
-                    target=-1, solutions=3, mode=1, thread_index=0):
+    def solve_board(self, trump, first, current_trick, hands):
         trump = STRAINS.index(trump)
         first = DIRECTIONS.index(first)
 
@@ -122,13 +120,14 @@ class DDS:
             current_trick_suit[i] = SUITS.index(card[0])
             current_trick_rank[i] = RANKS.index(card[1])
 
-        remain_cards = encode_deal(hands)
+        cards = encode_deal(hands)
         dl = Deal(trump, first, current_trick_suit, current_trick_rank,
-                  remain_cards)
+                  cards)
+
         fut = FutureTricks()
 
-        code = self.libdds.SolveBoard(dl, target, solutions, mode,
-                                      pointer(fut), thread_index)
+        code = self.libdds.SolveBoard(dl, -1, 3, 0,
+                                      pointer(fut), 0)
         if code != 1:
             raise DDSError(code)
 
